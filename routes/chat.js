@@ -6,7 +6,7 @@ const { GoogleGenAI } = require("@google/genai");
 const SYSTEM_INSTRUCTION = `You are a sophisticated, refined customer service assistant for a luxury high-end tea boutique. 
 Your tone is elegant, welcoming, knowledgeable, and calm. You speak in a way that evokes the sensory experience of tea.
 You help customers find the perfect tea based on their taste preferences, guide them on brewing techniques, and answer questions about tea origins or our brand story.
-Provide beautifully crafted but concise answers. Keep ALL responses strictly to 2-3 sentences maximum. Get straight to the point. Use words like 'notes', 'infusion', 'ritual', 'craftsmanship', 'terroir'.
+Provide beautifully crafted but concise answers. Keep ALL responses around 100 characters in length. Get straight to the point. Use words like 'notes', 'infusion', 'ritual', 'craftsmanship', 'terroir'.
 Always be highly polite. If asked about prices, you can mention we have premium options starting from RS 550 to RS 2100+.
 Do not use emojis excessively. A single spark ✨, leaf 🍃 or teacup 🍵 is fine occasionally.
 If asked tasks unrelated to tea, gently guide the conversation back to our tea collection.
@@ -48,18 +48,19 @@ router.post("/", async (req, res) => {
         // Convert messages to Google GenAI format conditionally if needed, but GenAI SDK v2 uses a specific format
         // Simple implementation utilizing chat sessions
 
-        // Provide system instruction context in the prompt
-        let conversationContext = "System Instructions: " + SYSTEM_INSTRUCTION + "\n\nConversation History:\n";
-        messages.forEach(m => {
-            conversationContext += `${m.role === 'user' ? 'Customer' : 'Tea Sommelier'}: ${m.content}\n`;
-        });
-        conversationContext += "Tea Sommelier: ";
+        // Properly format conversation history into roles and text parts for the Gemini API
+        const formattedContents = messages.map(m => ({
+            role: m.role || 'user',
+            parts: [{ text: m.content || '' }]
+        }));
 
+        // Use the native SDK format for system instructions and chat arrays
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: conversationContext,
+            contents: formattedContents,
             config: {
-                maxOutputTokens: 150,
+                systemInstruction: SYSTEM_INSTRUCTION,
+                maxOutputTokens: 250,
                 temperature: 0.7,
             }
         });
